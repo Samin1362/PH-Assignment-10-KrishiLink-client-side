@@ -1,2 +1,194 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+@layer base {
+  /* Custom DaisyUI Theme - KrishiLink Agricultural Theme */
+  :root {
+    --p: #4caf50; /* Primary - Main Green */
+    --pc: #ffffff; /* Primary Content */
+    --s: #a5d6a7; /* Secondary - Soft Green Accent */
+    --sc: #1a1a1a; /* Secondary Content */
+    --a: #81c784; /* Accent */
+    --ac: #ffffff; /* Accent Content */
+    --n: #1a1a1a; /* Neutral - Text */
+    --nc: #ffffff; /* Neutral Content */
+    --b1: #ffffff; /* Background Base */
+    --b2: #f5f5f5; /* Background Secondary */
+    --b3: #e0e0e0; /* Background Tertiary */
+    --bc: #1a1a1a; /* Base Content */
+    --su: #2e7d32; /* Success */
+    --suc: #ffffff; /* Success Content */
+    --wa: #ffa726; /* Warning */
+    --wac: #1a1a1a; /* Warning Content */
+    --er: #c62828; /* Error */
+    --erc: #ffffff; /* Error Content */
+    --rounded-box: 1rem;
+    --rounded-btn: 0.5rem;
+    --rounded-badge: 1.9rem;
+    --animation-btn: 0.25s;
+    --animation-input: 0.2s;
+    --btn-focus-scale: 0.95;
+    --border-btn: 1px;
+    --tab-border: 1px;
+    --tab-radius: 0.5rem;
+  }
+
+  /* Global Styles */
+  html,
+  body {
+    @apply bg-white text-[#1A1A1A] font-[Poppins,sans-serif];
+  }
+
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  /* Smooth Scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Primary Button - Gradient Green */
+  .btn-primary {
+    @apply bg-linear-to-r from-[#4CAF50] to-[#2E7D32] text-white font-semibold;
+    @apply px-6 py-3 rounded-lg cursor-pointer;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:shadow-lg hover:scale-105 hover:from-[#2E7D32] hover:to-[#1B5E20];
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4CAF50] focus-visible:ring-offset-2;
+    @apply active:scale-95;
+    border: none;
+  }
+
+  /* Secondary Button - Light Green */
+  .btn-secondary {
+    @apply bg-[#A5D6A7] text-[#1A1A1A] font-semibold;
+    @apply px-6 py-3 rounded-lg cursor-pointer;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:bg-[#81C784] hover:shadow-md hover:scale-105;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A5D6A7] focus-visible:ring-offset-2;
+    @apply active:scale-95;
+    border: none;
+  }
+
+  /* Outline Button - Green Border */
+  .btn-outline {
+    @apply bg-white text-[#4CAF50] font-semibold border-2 border-[#4CAF50];
+    @apply px-6 py-3 rounded-lg cursor-pointer;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:bg-[#4CAF50] hover:text-white hover:shadow-md hover:scale-105;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4CAF50] focus-visible:ring-offset-2;
+    @apply active:scale-95;
+  }
+
+  /* Disabled Button State */
+  .btn-primary:disabled,
+  .btn-secondary:disabled,
+  .btn-outline:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    @apply hover:scale-100 hover:shadow-none;
+  }
+
+  /* Small Button Variant */
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+
+  /* Large Button Variant */
+  .btn-lg {
+    @apply px-8 py-4 text-lg;
+  }
+
+  /* Success Button */
+  .btn-success {
+    @apply bg-[#2E7D32] text-white font-semibold;
+    @apply px-6 py-3 rounded-lg cursor-pointer;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:bg-[#1B5E20] hover:shadow-lg hover:scale-105;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E7D32] focus-visible:ring-offset-2;
+    @apply active:scale-95;
+    border: none;
+  }
+
+  /* Error Button */
+  .btn-error {
+    @apply bg-[#C62828] text-white font-semibold;
+    @apply px-6 py-3 rounded-lg cursor-pointer;
+    @apply transition-all duration-300 ease-in-out;
+    @apply hover:bg-[#B71C1C] hover:shadow-lg hover:scale-105;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C62828] focus-visible:ring-offset-2;
+    @apply active:scale-95;
+    border: none;
+  }
+}
+
+/* Custom Animations for Banner */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 1s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.8s ease-out forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.8s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animation-delay-700 {
+  animation-delay: 0.7s;
+}

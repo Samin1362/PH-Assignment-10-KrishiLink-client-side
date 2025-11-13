@@ -1,12 +1,20 @@
 import { createContext, useEffect, useState } from "react";
 import auth from "../firebase/firebase.config";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -18,20 +26,44 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  }
+    setLoading(true);
+    return await signInWithEmailAndPassword(auth, email, password);
+  };
 
-  const logout = async() => {
+  const googleSignIn = async () => {
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    return await signInWithPopup(auth, provider);
+  };
+
+  const register = async (email, password, displayName, photoURL) => {
+    setLoading(true);
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    if (displayName || photoURL) {
+      const profileData = {};
+      if (displayName) profileData.displayName = displayName;
+      if (photoURL) profileData.photoURL = photoURL;
+      await updateProfile(result.user, profileData);
+    }
+    return result;
+  };
+
+  const logout = async () => {
+    setLoading(true);
     await signOut(auth);
     setUser(null);
-  }
+  };
 
   const value = {
     user,
     loading,
-    login, 
-    logout
+    login,
+    logout,
+    googleSignIn,
+    register,
   };
 
-  return <AuthContext value={value}>{children}</AuthContext>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export { AuthContext };
