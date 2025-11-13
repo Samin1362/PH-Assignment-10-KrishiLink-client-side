@@ -122,12 +122,6 @@ const Banner = () => {
                   >
                     Explore Crops
                   </NavLink>
-                  <NavLink
-                    to="/register"
-                    className="btn-outline text-center transform hover:scale-105 transition-transform duration-300"
-                  >
-                    Join Now
-                  </NavLink>
                 </div>
               </div>
             </div>
