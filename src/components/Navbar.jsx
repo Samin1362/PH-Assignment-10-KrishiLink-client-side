@@ -7,7 +7,7 @@ const Navbar = () => {
         <a>Home</a>
       </li>
       <li>
-        <a>Gallery</a>
+        <a>All Crops</a>
       </li>
       <li>
         <a>Contact</a>
@@ -49,7 +49,7 @@ const Navbar = () => {
         <ul className="menu menu-horizontal px-1">{links}</ul>
       </div>
       <div className="navbar-end">
-        <a className="btn">Button</a>
+        <a className="btn">Login</a>
       </div>
     </div>
   );

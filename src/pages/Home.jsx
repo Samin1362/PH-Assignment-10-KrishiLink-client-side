@@ -1,9 +1,18 @@
 import React from 'react';
+import Banner from '../components/Banner';
 
 const Home = () => {
   return (
     <div>
-      <h1>This is home</h1>
+      <Banner></Banner>
+      <main className='grid grid-cols-12'>
+        <div className='col-span-8'>
+          <h1>This is right side.</h1>
+        </div>
+        <div className='col-span-4'>
+          <h1>This is left side</h1>
+        </div>
+      </main>
     </div>
   );
 };
