@@ -1,16 +1,17 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { cropsAPI } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
+import useAxiosSecure from "../hooks/useAxiosSecure";
+import { useMutation } from "@tanstack/react-query";
 
 const AddCropsPage = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const axiosSecure = useAxiosSecure();
 
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
@@ -65,35 +66,38 @@ const AddCropsPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // CREATE Mutation
+  const addCropMutation = useMutation({
+    mutationFn: async (cropData) => {
+      const res = await axiosSecure.post("/api/crops", cropData);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      showSuccess("Crop added successfully! 🌾");
+      navigate(`/crop/${data.data._id}`);
+    },
+    onError: (err) => {
+      showError(err.response?.data?.message || "Failed to add crop");
+      console.error("Error adding crop:", err);
+    },
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    try {
-      setLoading(true);
+    const cropData = {
+      ...formData,
+      pricePerUnit: parseFloat(formData.pricePerUnit),
+      quantity: parseFloat(formData.quantity),
+      owner: {
+        ownerEmail: user.email,
+        ownerName: user.displayName || user.email.split("@")[0],
+      },
+    };
 
-      const cropData = {
-        ...formData,
-        pricePerUnit: parseFloat(formData.pricePerUnit),
-        quantity: parseFloat(formData.quantity),
-        owner: {
-          ownerEmail: user.email,
-          ownerName: user.displayName || user.email.split("@")[0],
-        },
-      };
-
-      const response = await cropsAPI.create(cropData, user.email);
-
-      // Success
-      showSuccess("Crop added successfully! 🌾");
-      navigate(`/crop/${response.data._id}`);
-    } catch (error) {
-      showError(error.message || "Failed to add crop");
-      console.error("Error adding crop:", error);
-    } finally {
-      setLoading(false);
-    }
+    addCropMutation.mutate(cropData);
   };
 
   return (
@@ -660,10 +664,10 @@ const AddCropsPage = () => {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={addCropMutation.isPending}
                       className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 text-lg py-4"
                     >
-                      {loading ? (
+                      {addCropMutation.isPending ? (
                         <>
                           <svg
                             className="animate-spin h-5 w-5"
@@ -710,7 +714,7 @@ const AddCropsPage = () => {
                     <button
                       type="button"
                       onClick={() => navigate(-1)}
-                      disabled={loading}
+                      disabled={addCropMutation.isPending}
                       className="flex-1 btn-outline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 text-lg py-4"
                     >
                       <svg

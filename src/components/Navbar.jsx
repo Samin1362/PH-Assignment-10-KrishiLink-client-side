@@ -82,7 +82,7 @@ const Navbar = () => {
       </li>
       <li>
         <NavLink
-          to="/profile"
+          to="/dashboard"
           className={({ isActive }) =>
             isActive
               ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
@@ -90,46 +90,7 @@ const Navbar = () => {
           }
           onClick={() => setIsMobileMenuOpen(false)}
         >
-          Profile
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/add-crops"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          Add Crops
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/my-posts"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          My Posts
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="/my-interests"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          My Interests
+          Dashboard
         </NavLink>
       </li>
     </>

@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { NavLink } from "react-router-dom";
 import Banner from "../components/Banner";
 import CropCard from "../components/CropCard";
-import { cropsAPI } from "../services/api";
+import { useQuery } from "@tanstack/react-query";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const Home = () => {
-  const [latestCrops, setLatestCrops] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const axiosSecure = useAxiosSecure();
 
-  useEffect(() => {
-    fetchLatestCrops();
-  }, []);
-
-  const fetchLatestCrops = async () => {
-    try {
-      const response = await cropsAPI.getLatest();
-      setLatestCrops(response.data || []);
-    } catch (error) {
-      console.error("Error fetching latest crops:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch latest crops using TanStack Query
+  const { data: latestCrops = [], isLoading: loading } = useQuery({
+    queryKey: ["latestCrops"],
+    queryFn: async () => {
+      const res = await axiosSecure.get("/api/crops/latest");
+      return res.data.data || [];
+    },
+  });
 
   return (
     <div className="pt-16">

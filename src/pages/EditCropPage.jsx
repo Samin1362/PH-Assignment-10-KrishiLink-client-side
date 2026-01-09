@@ -1,22 +1,21 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Loader from "../components/Loader";
-import { cropsAPI } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
+import useAxiosSecure from "../hooks/useAxiosSecure";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const EditCropPage = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
-
   const [formData, setFormData] = useState({
     name: "",
     type: "",
@@ -41,42 +40,41 @@ const EditCropPage = () => {
 
   const units = ["kg", "ton", "piece", "liter", "bag"];
 
-  useEffect(() => {
-    fetchCropData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const fetchCropData = async () => {
-    try {
-      setLoading(true);
-      const response = await cropsAPI.getById(id);
-      const crop = response.data;
+  // READ: Fetch crop data
+  const {
+    data: crop,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["cropDetails", id],
+    queryFn: async () => {
+      const res = await axiosSecure.get(`/api/crops/${id}`);
+      const cropData = res.data.data;
 
       // Check if user is the owner
-      if (crop.owner.ownerEmail !== user.email) {
+      if (cropData.owner.ownerEmail !== user.email) {
         showError("You are not authorized to edit this crop");
-        navigate("/my-posts");
-        return;
+        navigate("/dashboard/my-posts");
+        throw new Error("Unauthorized");
       }
 
       // Populate form
       setFormData({
-        name: crop.name,
-        type: crop.type,
-        pricePerUnit: crop.pricePerUnit.toString(),
-        unit: crop.unit,
-        quantity: crop.quantity.toString(),
-        description: crop.description,
-        location: crop.location,
-        image: crop.image || "",
+        name: cropData.name,
+        type: cropData.type,
+        pricePerUnit: cropData.pricePerUnit.toString(),
+        unit: cropData.unit,
+        quantity: cropData.quantity.toString(),
+        description: cropData.description,
+        location: cropData.location,
+        image: cropData.image || "",
       });
-    } catch (err) {
-      setError(err.message || "Failed to fetch crop data");
-      console.error("Error fetching crop:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      return cropData;
+    },
+    enabled: !!id && !!user?.email,
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -106,38 +104,44 @@ const EditCropPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // UPDATE: Update crop mutation
+  const updateCropMutation = useMutation({
+    mutationFn: async (cropData) => {
+      const res = await axiosSecure.put(`/api/crops/${id}`, cropData);
+      return res.data;
+    },
+    onSuccess: () => {
+      showSuccess("Crop updated successfully! ✓");
+      queryClient.invalidateQueries(["cropDetails", id]);
+      queryClient.invalidateQueries(["myCrops", user?.email]);
+      queryClient.invalidateQueries(["allCrops"]);
+      navigate(`/crop/${id}`);
+    },
+    onError: (err) => {
+      showError(err.response?.data?.message || "Failed to update crop");
+      console.error("Error updating crop:", err);
+    },
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    try {
-      setSubmitting(true);
+    const cropData = {
+      ...formData,
+      pricePerUnit: parseFloat(formData.pricePerUnit),
+      quantity: parseFloat(formData.quantity),
+    };
 
-      const cropData = {
-        ...formData,
-        pricePerUnit: parseFloat(formData.pricePerUnit),
-        quantity: parseFloat(formData.quantity),
-      };
-
-      await cropsAPI.update(id, cropData, user.email);
-
-      // Success
-      showSuccess("Crop updated successfully! ✓");
-      navigate(`/crop/${id}`);
-    } catch (error) {
-      showError(error.message || "Failed to update crop");
-      console.error("Error updating crop:", error);
-    } finally {
-      setSubmitting(false);
-    }
+    updateCropMutation.mutate(cropData);
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 
-  if (error) {
+  if (isError) {
     return (
       <>
         <Navbar />
@@ -676,10 +680,10 @@ const EditCropPage = () => {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={updateCropMutation.isPending}
                       className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
-                      {submitting ? (
+                      {updateCropMutation.isPending ? (
                         <>
                           <svg
                             className="animate-spin h-5 w-5"
@@ -726,7 +730,7 @@ const EditCropPage = () => {
                     <button
                       type="button"
                       onClick={() => navigate(-1)}
-                      disabled={submitting}
+                      disabled={updateCropMutation.isPending}
                       className="flex-1 btn-outline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
                       <svg

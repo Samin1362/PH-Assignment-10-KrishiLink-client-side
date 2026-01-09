@@ -1,46 +1,61 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Loader from "../components/Loader";
-import { cropsAPI, interestsAPI } from "../services/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 import { AuthContext } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
 
 const CropDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { showSuccess, showError } = useToast();
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
 
-  const [crop, setCrop] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showInterestForm, setShowInterestForm] = useState(false);
-  const [submittingInterest, setSubmittingInterest] = useState(false);
-
   const [interestData, setInterestData] = useState({
     quantity: "",
     message: "",
   });
 
-  useEffect(() => {
-    fetchCropDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  // Fetch crop details using TanStack Query
+  const {
+    data: crop,
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: ["crop", id],
+    queryFn: async () => {
+      const res = await axiosSecure.get(`/api/crops/${id}`);
+      return res.data.data;
+    },
+  });
 
-  const fetchCropDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await cropsAPI.getById(id);
-      setCrop(response.data);
-    } catch (err) {
-      setError(err.message || "Failed to fetch crop details");
-      console.error("Error fetching crop:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mutation for adding interest
+  const addInterestMutation = useMutation({
+    mutationFn: async (interestPayload) => {
+      const res = await axiosSecure.post("/api/interests", interestPayload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      // Check if there was a warning about quantity
+      if (data.warning) {
+        showSuccess(`Interest submitted successfully! ${data.warning}`);
+      } else {
+        showSuccess("Interest submitted successfully!");
+      }
+      setShowInterestForm(false);
+      setInterestData({ quantity: "", message: "" });
+      // Refetch crop details to show updated interests
+      queryClient.invalidateQueries(["crop", id]);
+    },
+    onError: (error) => {
+      showError(error.response?.data?.message || "Failed to submit interest");
+    },
+  });
 
   const handleInterestSubmit = async (e) => {
     e.preventDefault();
@@ -50,29 +65,15 @@ const CropDetailPage = () => {
       return;
     }
 
-    try {
-      setSubmittingInterest(true);
+    const interest = {
+      cropId: crop._id,
+      userEmail: user.email,
+      userName: user.displayName || user.email.split("@")[0],
+      quantity: parseInt(interestData.quantity),
+      message: interestData.message,
+    };
 
-      const interest = {
-        cropId: crop._id,
-        userEmail: user.email,
-        userName: user.displayName || user.email.split("@")[0],
-        quantity: parseInt(interestData.quantity),
-        message: interestData.message,
-      };
-
-      await interestsAPI.add(interest);
-
-      // Show success message
-      showSuccess("Interest sent successfully! 📧");
-      setShowInterestForm(false);
-      setInterestData({ quantity: "", message: "" });
-    } catch (err) {
-      showError(err.message || "Failed to send interest");
-      console.error("Error sending interest:", err);
-    } finally {
-      setSubmittingInterest(false);
-    }
+    addInterestMutation.mutate(interest);
   };
 
   if (loading) {
@@ -366,7 +367,7 @@ const CropDetailPage = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => navigate(`/edit-crop/${crop._id}`)}
+                        onClick={() => navigate(`/dashboard/edit-crop/${crop._id}`)}
                         className="btn-primary w-full py-4 text-lg inline-flex items-center justify-center gap-2"
                       >
                         <svg
@@ -515,10 +516,10 @@ const CropDetailPage = () => {
                             <div className="flex gap-3 pt-2">
                               <button
                                 type="submit"
-                                disabled={submittingInterest}
+                                disabled={addInterestMutation.isPending}
                                 className="btn-primary flex-1 py-3.5 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                               >
-                                {submittingInterest ? (
+                                {addInterestMutation.isPending ? (
                                   <>
                                     <svg
                                       className="animate-spin h-5 w-5"
@@ -571,7 +572,7 @@ const CropDetailPage = () => {
                                     message: "",
                                   });
                                 }}
-                                disabled={submittingInterest}
+                                disabled={addInterestMutation.isPending}
                                 className="px-6 py-3.5 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 Cancel

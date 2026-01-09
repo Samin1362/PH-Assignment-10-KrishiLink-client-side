@@ -1,67 +1,58 @@
-import React, { useState, useEffect, useContext, useMemo } from "react";
+import React, { useState, useContext, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Loader from "../components/Loader";
-import { interestsAPI } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
+import useAxiosSecure from "../hooks/useAxiosSecure";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const MyInterestsPage = () => {
   const { user } = useContext(AuthContext);
   const { showSuccess, showError } = useToast();
-  const [interests, setInterests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
+
   const [sortBy, setSortBy] = useState("newest");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [updatingStatus, setUpdatingStatus] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchMyInterests();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  // READ: Fetch sent interests
+  const {
+    data: interests = [],
+    isLoading: loading,
+    isError,
+    error: errorMsg,
+  } = useQuery({
+    queryKey: ["sentInterests", user?.email],
+    queryFn: async () => {
+      const res = await axiosSecure.get(`/api/interests/sent?email=${user.email}`);
+      return res.data.data || [];
+    },
+    enabled: !!user?.email,
+  });
 
-  const fetchMyInterests = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await interestsAPI.getReceived(user.email);
-      setInterests(response.data || []);
-    } catch (err) {
-      setError(err.message || "Failed to fetch interests");
-      console.error("Error fetching interests:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusUpdate = async (interestId, newStatus) => {
-    try {
-      setUpdatingStatus(interestId);
-      await interestsAPI.update(interestId, newStatus);
-
-      // Update local state
-      setInterests((prev) =>
-        prev.map((interest) =>
-          interest._id === interestId
-            ? { ...interest, status: newStatus }
-            : interest
-        )
-      );
-
+  // UPDATE: Update interest status mutation (for cancellation)
+  const updateInterestMutation = useMutation({
+    mutationFn: async ({ interestId, status }) => {
+      const res = await axiosSecure.patch(`/api/interests/${interestId}`, { status });
+      return res.data;
+    },
+    onSuccess: (data, variables) => {
       showSuccess(
         `Interest ${
-          newStatus === "accepted" ? "accepted" : "rejected"
+          variables.status === "accepted" ? "accepted" : "cancelled"
         } successfully!`
       );
-    } catch (err) {
+      queryClient.invalidateQueries(["sentInterests", user?.email]);
+    },
+    onError: (err) => {
       console.error("Error updating status:", err);
-      showError(err.message || "Failed to update interest status");
-    } finally {
-      setUpdatingStatus(null);
-    }
+      showError(err.response?.data?.message || "Failed to update interest status");
+    },
+  });
+
+  const handleStatusUpdate = async (interestId, newStatus) => {
+    updateInterestMutation.mutate({ interestId, status: newStatus });
   };
 
   // Calculate statistics
@@ -199,6 +190,14 @@ const MyInterestsPage = () => {
     return <Loader />;
   }
 
+  if (isError) {
+    return (
+      <div className="text-center py-16 text-red-500">
+        Error: {errorMsg?.message || "Failed to load interests"}
+      </div>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -214,7 +213,7 @@ const MyInterestsPage = () => {
             </p>
           </div>
 
-          {error && (
+          {isError && (
             <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg text-red-700 animate-fadeIn">
               <div className="flex items-center gap-3">
                 <svg
@@ -231,7 +230,7 @@ const MyInterestsPage = () => {
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span>{error}</span>
+                <span>{errorMsg?.message || "Failed to load interests"}</span>
               </div>
             </div>
           )}
@@ -658,10 +657,10 @@ const MyInterestsPage = () => {
                                           "accepted"
                                         )
                                       }
-                                      disabled={updatingStatus === interest._id}
+                                      disabled={updateInterestMutation.isPending}
                                       className="flex-1 btn-success text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {updatingStatus === interest._id ? (
+                                      {updateInterestMutation.isPending ? (
                                         <>
                                           <svg
                                             className="animate-spin h-4 w-4"
@@ -712,10 +711,10 @@ const MyInterestsPage = () => {
                                           "rejected"
                                         )
                                       }
-                                      disabled={updatingStatus === interest._id}
+                                      disabled={updateInterestMutation.isPending}
                                       className="flex-1 btn-error text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {updatingStatus === interest._id ? (
+                                      {updateInterestMutation.isPending ? (
                                         <>
                                           <svg
                                             className="animate-spin h-4 w-4"
@@ -858,7 +857,7 @@ const MyInterestsPage = () => {
                 your crops to start receiving inquiries from potential buyers!
               </p>
               <NavLink
-                to="/add-crops"
+                to="/dashboard/add-crops"
                 className="btn-primary inline-flex items-center gap-2"
               >
                 <svg

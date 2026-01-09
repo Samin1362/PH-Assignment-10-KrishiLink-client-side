@@ -17,6 +17,8 @@ import PrivacyPage from "../pages/PrivacyPage";
 import HowItWorksPage from "../pages/HowItWorksPage";
 import BlogsPage from "../pages/BlogsPage";
 import PrivateRoute from "../components/PrivateRoute";
+import DashboardLayout from "../layouts/DashboardLayout";
+import DashboardHome from "../pages/DashboardHome";
 
 const router = createBrowserRouter([
   {
@@ -58,49 +60,44 @@ const router = createBrowserRouter([
         path: "/blogs",
         element: <BlogsPage />,
       },
-      // Protected routes
+    ],
+  },
+  // Dashboard Routes (Protected)
+  {
+    path: "/dashboard",
+    element: (
+      <PrivateRoute>
+        <DashboardLayout />
+      </PrivateRoute>
+    ),
+    children: [
       {
-        path: "/add-crops",
-        element: (
-          <PrivateRoute>
-            <AddCropsPage />
-          </PrivateRoute>
-        ),
+        index: true,
+        element: <DashboardHome />,
       },
       {
-        path: "/my-posts",
-        element: (
-          <PrivateRoute>
-            <MyPostsPage />
-          </PrivateRoute>
-        ),
+        path: "add-crops",
+        element: <AddCropsPage />,
       },
       {
-        path: "/my-interests",
-        element: (
-          <PrivateRoute>
-            <MyInterestsPage />
-          </PrivateRoute>
-        ),
+        path: "my-posts",
+        element: <MyPostsPage />,
       },
       {
-        path: "/profile",
-        element: (
-          <PrivateRoute>
-            <ProfilePage />
-          </PrivateRoute>
-        ),
+        path: "my-interests",
+        element: <MyInterestsPage />,
       },
       {
-        path: "/edit-crop/:id",
-        element: (
-          <PrivateRoute>
-            <EditCropPage />
-          </PrivateRoute>
-        ),
+        path: "profile",
+        element: <ProfilePage />,
+      },
+      {
+        path: "edit-crop/:id",
+        element: <EditCropPage />,
       },
     ],
   },
+  // Auth Routes
   {
     path: "/login",
     element: <LoginPage />,
