@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import CropCard from "../components/CropCard";
 import Loader from "../components/Loader";
-import { cropsAPI } from "../services/api";
+import { useQuery } from "@tanstack/react-query";
+import useAxiosSecure from "../hooks/useAxiosSecure";
 
 const AllCropsPage = () => {
-  const [allCrops, setAllCrops] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const axiosSecure = useAxiosSecure();
   const [searchInput, setSearchInput] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterType, setFilterType] = useState("all");
@@ -25,24 +24,18 @@ const AllCropsPage = () => {
     "Other",
   ];
 
-  // Fetch all crops once on mount
-  useEffect(() => {
-    fetchCrops();
-  }, []);
-
-  const fetchCrops = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await cropsAPI.getAll();
-      setAllCrops(response.data || []);
-    } catch (err) {
-      setError(err.message || "Failed to fetch crops");
-      console.error("Error fetching crops:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch all crops using TanStack Query
+  const {
+    data: allCrops = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: ["allCrops"],
+    queryFn: async () => {
+      const res = await axiosSecure.get("/api/crops");
+      return res.data.data || [];
+    },
+  });
 
   // Dynamic search, filter, and sort
   const filteredAndSortedCrops = useMemo(() => {

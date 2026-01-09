@@ -1,94 +1,113 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Loader from "../components/Loader";
-import { cropsAPI, interestsAPI } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
+import useAxiosSecure from "../hooks/useAxiosSecure";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const MyPostsPage = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
 
-  const [crops, setCrops] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [expandedCrop, setExpandedCrop] = useState(null);
-  const [receivedInterests, setReceivedInterests] = useState({});
 
-  useEffect(() => {
-    if (user) {
-      fetchMyCrops();
-      fetchReceivedInterests();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const fetchMyCrops = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await cropsAPI.getAll();
+  // READ: Fetch user's crops
+  const {
+    data: crops = [],
+    isLoading: cropsLoading,
+    isError: cropsError,
+    error: cropsErrorMsg,
+  } = useQuery({
+    queryKey: ["myCrops", user?.email],
+    queryFn: async () => {
+      const res = await axiosSecure.get("/api/crops");
       // Filter to only show user's own crops
-      const myCrops = response.data.filter(
-        (crop) => crop.owner.ownerEmail === user.email
-      );
-      setCrops(myCrops);
-    } catch (err) {
-      setError(err.message || "Failed to fetch crops");
-      console.error("Error fetching crops:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data.data.filter((crop) => crop.owner.ownerEmail === user.email);
+    },
+    enabled: !!user?.email,
+  });
 
-  const fetchReceivedInterests = async () => {
-    try {
-      const response = await interestsAPI.getReceived(user.email);
+  // READ: Fetch received interests
+  const { data: receivedInterests = {} } = useQuery({
+    queryKey: ["receivedInterests", user?.email],
+    queryFn: async () => {
+      const res = await axiosSecure.get(`/api/interests/received?email=${user.email}`);
       // Group interests by cropId
       const grouped = {};
-      response.data.forEach((interest) => {
+      res.data.data.forEach((interest) => {
         if (!grouped[interest.cropId]) {
           grouped[interest.cropId] = [];
         }
         grouped[interest.cropId].push(interest);
       });
-      setReceivedInterests(grouped);
-    } catch (err) {
-      console.error("Error fetching interests:", err);
-    }
-  };
+      return grouped;
+    },
+    enabled: !!user?.email,
+  });
+
+  // DELETE: Delete crop mutation
+  const deleteCropMutation = useMutation({
+    mutationFn: async (cropId) => {
+      const res = await axiosSecure.delete(`/api/crops/${cropId}`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      // Check if there was a warning about pending interests
+      if (data.warning) {
+        showSuccess(`${data.message}. ${data.warning}`);
+      } else {
+        showSuccess("Crop deleted successfully!");
+      }
+      queryClient.invalidateQueries(["myCrops", user?.email]);
+      queryClient.invalidateQueries(["allCrops"]);
+      queryClient.invalidateQueries(["receivedInterests", user?.email]);
+    },
+    onError: (err) => {
+      showError(err.response?.data?.message || "Failed to delete crop");
+      console.error("Error deleting crop:", err);
+    },
+  });
+
+  // UPDATE: Update interest status mutation
+  const updateInterestMutation = useMutation({
+    mutationFn: async ({ interestId, status }) => {
+      const res = await axiosSecure.patch(`/api/interests/${interestId}`, { status });
+      return res.data;
+    },
+    onSuccess: (data, variables) => {
+      showSuccess(`Interest ${variables.status} successfully!`);
+      queryClient.invalidateQueries(["receivedInterests", user?.email]);
+      queryClient.invalidateQueries(["myCrops", user?.email]);
+    },
+    onError: (err) => {
+      showError(err.response?.data?.message || "Failed to update interest status");
+      console.error("Error updating interest:", err);
+    },
+  });
 
   const handleDeleteCrop = async (cropId, cropName) => {
-    if (!window.confirm(`Are you sure you want to delete "${cropName}"?`)) {
+    // Get the crop to check for pending interests
+    const crop = crops.find(c => c._id === cropId);
+    const pendingInterests = crop?.interests?.filter(i => i.status === "pending") || [];
+    
+    let confirmMessage = `Are you sure you want to delete "${cropName}"?`;
+    if (pendingInterests.length > 0) {
+      confirmMessage += `\n\n⚠️ Warning: This crop has ${pendingInterests.length} pending interest(s) that will be removed.`;
+    }
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
-
-    try {
-      await cropsAPI.delete(cropId, user.email);
-      showSuccess("Crop deleted successfully!");
-      fetchMyCrops();
-    } catch (err) {
-      showError(err.message || "Failed to delete crop");
-      console.error("Error deleting crop:", err);
-    }
+    deleteCropMutation.mutate(cropId);
   };
 
   const handleUpdateInterestStatus = async (interestId, cropId, newStatus) => {
-    try {
-      await interestsAPI.updateStatus({
-        interestId,
-        cropId,
-        status: newStatus,
-      });
-      showSuccess(`Interest ${newStatus} successfully!`);
-      fetchReceivedInterests();
-      fetchMyCrops(); // Refresh to update quantity if accepted
-    } catch (err) {
-      showError(err.message || "Failed to update interest status");
-      console.error("Error updating interest:", err);
-    }
+    updateInterestMutation.mutate({ interestId, cropId, status: newStatus });
   };
 
   const getStatusBadge = (status) => {
@@ -109,8 +128,16 @@ const MyPostsPage = () => {
     );
   };
 
-  if (loading) {
+  if (cropsLoading) {
     return <Loader />;
+  }
+
+  if (cropsError) {
+    return (
+      <div className="text-center py-16 text-red-500">
+        Error: {cropsErrorMsg?.message || "Failed to load crops"}
+      </div>
+    );
   }
 
   return (
@@ -124,14 +151,14 @@ const MyPostsPage = () => {
               Manage your crop listings and received interests
             </p>
           </div>
-          <NavLink to="/add-crops" className="btn-primary">
+          <NavLink to="/dashboard/add-crops" className="btn-primary">
             + Add New Crop
           </NavLink>
         </div>
 
-        {error && (
+        {cropsError && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
-            {error}
+            {cropsErrorMsg?.message || "Failed to load crops"}
           </div>
         )}
 
@@ -213,7 +240,7 @@ const MyPostsPage = () => {
                           View
                         </NavLink>
                         <button
-                          onClick={() => navigate(`/edit-crop/${crop._id}`)}
+                          onClick={() => navigate(`/dashboard/edit-crop/${crop._id}`)}
                           className="btn-outline text-sm"
                         >
                           Edit
@@ -353,7 +380,7 @@ const MyPostsPage = () => {
             <p className="text-gray-500 mb-6">
               Start by adding your first crop listing
             </p>
-            <NavLink to="/add-crops" className="btn-primary">
+            <NavLink to="/dashboard/add-crops" className="btn-primary">
               + Add Your First Crop
             </NavLink>
           </div>

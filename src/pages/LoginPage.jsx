@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
 import { sendPasswordResetEmail } from "firebase/auth";
 import auth from "../firebase/firebase.config";
 import Navbar from "../components/Navbar";

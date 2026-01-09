@@ -1,51 +1,37 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 // import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Loader from "../components/Loader";
-import { usersAPI } from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 import { updateProfile } from "firebase/auth";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../hooks/useToastContext";
+import useAxiosSecure from "../hooks/useAxiosSecure";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const ProfilePage = () => {
   const { user, auth } = useContext(AuthContext);
   // const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [error, setError] = useState(null);
-
-  const [profileData, setProfileData] = useState({
-    name: "",
-    email: "",
-    photoURL: "",
-    phone: "",
-    address: "",
-    bio: "",
-    role: "farmer",
-  });
-
   const [formData, setFormData] = useState({});
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Try to fetch from database
+  // READ: Fetch user profile
+  const {
+    data: profileData,
+    isLoading: loading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["userProfile", user?.email],
+    queryFn: async () => {
       try {
-        const response = await usersAPI.getByEmail(user.email);
-        const dbUser = response.data;
-        setProfileData({
+        // Try to fetch from database
+        const res = await axiosSecure.get(`/api/users/${user.email}`);
+        const dbUser = res.data.data;
+        return {
           name: dbUser.name || user.displayName || "",
           email: dbUser.email,
           photoURL: dbUser.photoURL || user.photoURL || "",
@@ -53,18 +39,18 @@ const ProfilePage = () => {
           address: dbUser.address || "",
           bio: dbUser.bio || "",
           role: dbUser.role || "farmer",
-        });
+        };
       } catch (err) {
         // If user not found in DB, create from Firebase auth data
-        if (err.message.includes("not found") || err.message.includes("404")) {
+        if (err.response?.status === 404) {
           const newUser = {
             email: user.email,
             name: user.displayName || user.email.split("@")[0],
             photoURL: user.photoURL || "",
             role: "farmer",
           };
-          await usersAPI.create(newUser);
-          setProfileData({
+          await axiosSecure.post("/api/users", newUser);
+          return {
             name: newUser.name,
             email: newUser.email,
             photoURL: newUser.photoURL,
@@ -72,18 +58,13 @@ const ProfilePage = () => {
             address: "",
             bio: "",
             role: newUser.role,
-          });
-        } else {
-          throw err;
+          };
         }
+        throw err;
       }
-    } catch (err) {
-      setError(err.message || "Failed to load profile");
-      console.error("Error fetching profile:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    enabled: !!user?.email,
+  });
 
   const handleEdit = () => {
     setFormData({ ...profileData });
@@ -100,39 +81,62 @@ const ProfilePage = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-
+  // UPDATE: Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updatedData) => {
       // Update in database
-      await usersAPI.update(user.email, formData);
+      const res = await axiosSecure.put(`/api/users/${user.email}`, updatedData);
 
       // Update Firebase profile if name or photo changed
       if (
-        formData.name !== user.displayName ||
-        formData.photoURL !== user.photoURL
+        updatedData.name !== user.displayName ||
+        updatedData.photoURL !== user.photoURL
       ) {
         await updateProfile(auth.currentUser, {
-          displayName: formData.name,
-          photoURL: formData.photoURL,
+          displayName: updatedData.name,
+          photoURL: updatedData.photoURL,
         });
       }
 
-      setProfileData(formData);
+      return res.data;
+    },
+    onSuccess: () => {
       setEditing(false);
       showSuccess("Profile updated successfully! 👤");
-
+      queryClient.invalidateQueries(["userProfile", user?.email]);
       // Refresh page to update context
-      window.location.reload();
-    } catch (err) {
-      showError(err.message || "Failed to update profile");
+      setTimeout(() => window.location.reload(), 1000);
+    },
+    onError: (err) => {
+      showError(err.response?.data?.message || "Failed to update profile");
       console.error("Error updating profile:", err);
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const handleSave = async () => {
+    updateProfileMutation.mutate(formData);
   };
 
   if (loading) {
+    return <Loader />;
+  }
+
+  if (isError) {
+    return (
+      <>
+        <Navbar />
+        <div className="container mx-auto px-4 py-20 min-h-screen font-[Poppins,sans-serif]">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+              Error: {error?.message || "Failed to load profile"}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!profileData) {
     return <Loader />;
   }
 
@@ -142,12 +146,6 @@ const ProfilePage = () => {
       <div className="container mx-auto px-4 py-20 min-h-screen font-[Poppins,sans-serif]">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">My Profile</h1>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
-              {error}
-            </div>
-          )}
 
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             {/* Profile Header */}
@@ -355,10 +353,10 @@ const ProfilePage = () => {
                   <div className="flex gap-4 mt-8">
                     <button
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={updateProfileMutation.isPending}
                       className="btn-primary flex-1 disabled:opacity-50"
                     >
-                      {saving ? "Saving..." : "Save Changes"}
+                      {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                     </button>
                     <button
                       onClick={handleCancel}
