@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import ScrollToTop from "../components/ScrollToTop";
 
 const DashboardLayout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -132,6 +133,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-[Poppins,sans-serif]">
+      <ScrollToTop />
       {/* Top Navbar */}
       <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
         <div className="px-3 py-3 lg:px-5 lg:pl-3">
@@ -171,7 +173,7 @@ const DashboardLayout = () => {
               <div className="flex items-center ml-3 relative">
                 <button
                   onClick={toggleProfileDropdown}
-                  className="flex items-center text-sm bg-gray-100 rounded-full focus:ring-4 focus:ring-gray-300 hover:bg-gray-200 transition-all"
+                  className="flex items-center text-sm bg-gray-100 rounded-full focus:ring-4 focus:ring-gray-300 hover:bg-gray-200 transition-all cursor-pointer"
                 >
                   <span className="sr-only">Open user menu</span>
                   <img
@@ -185,6 +187,7 @@ const DashboardLayout = () => {
                         "&background=4CAF50&color=fff"
                     }
                     alt="user"
+                    referrerPolicy="no-referrer"
                   />
                   <div className="hidden md:flex flex-col items-start ml-3 mr-3">
                     <span className="text-sm font-semibold text-gray-900">
@@ -381,7 +384,7 @@ const DashboardLayout = () => {
             <div className="p-4 bg-linear-to-r from-[#4CAF50] to-[#66BB6A] rounded-lg shadow-md">
               <div className="flex items-center">
                 <img
-                  className="w-12 h-12 rounded-full border-2 border-white"
+                  className="w-12 h-12 rounded-full border-2 border-white object-cover"
                   src={
                     user?.photoURL ||
                     "https://ui-avatars.com/api/?name=" +
@@ -391,6 +394,7 @@ const DashboardLayout = () => {
                       "&background=fff&color=4CAF50"
                   }
                   alt="user"
+                  referrerPolicy="no-referrer"
                 />
                 <div className="ml-3">
                   <p className="text-sm font-semibold text-white">

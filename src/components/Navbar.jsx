@@ -93,11 +93,11 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50 font-[Poppins,sans-serif]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <NavLink to="/" className="flex items-center space-x-2">
+            <NavLink to="/" className="flex items-center">
               <div className="flex items-center">
                 <span className="text-2xl font-bold text-[#1A1A1A]">
                   Krishi
@@ -119,11 +119,12 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center space-x-3">
                 {/* User Avatar */}
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 cursor-pointer">
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt={user.displayName || "User avatar"}
+                      referrerPolicy="no-referrer"
                       className="w-10 h-10 rounded-full border-2 border-[#4CAF50] object-cover"
                     />
                   ) : (
@@ -213,6 +214,7 @@ const Navbar = () => {
                     <img
                       src={user.photoURL}
                       alt={user.displayName || "User"}
+                      referrerPolicy="no-referrer"
                       className="w-10 h-10 rounded-full border-2 border-[#4CAF50] object-cover"
                     />
                   ) : (
