@@ -19,33 +19,37 @@ const Navbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const navLinkClass = ({ isActive }) =>
+    isActive
+      ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
+      : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300";
+
   // Navigation links for logged-out users
   const publicLinks = (
     <>
       <li>
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
+        <NavLink to="/" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
           Home
         </NavLink>
       </li>
       <li>
-        <NavLink
-          to="/all-crops"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
+        <NavLink to="/all-crops" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
           All Crops
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/how-it-works" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+          How It Works
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/blogs" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+          Blogs
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/contact" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+          Contact
         </NavLink>
       </li>
     </>
@@ -55,41 +59,32 @@ const Navbar = () => {
   const privateLinks = (
     <>
       <li>
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
+        <NavLink to="/" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
           Home
         </NavLink>
       </li>
       <li>
-        <NavLink
-          to="/all-crops"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
+        <NavLink to="/all-crops" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
           All Crops
         </NavLink>
       </li>
       <li>
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) =>
-            isActive
-              ? "text-[#4CAF50] font-semibold border-b-2 border-[#4CAF50] px-3 py-2 transition-all duration-300"
-              : "text-[#1A1A1A] hover:text-[#4CAF50] px-3 py-2 transition-all duration-300"
-          }
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
+        <NavLink to="/how-it-works" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+          How It Works
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/blogs" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+          Blogs
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/contact" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+          Contact
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/dashboard" className={navLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
           Dashboard
         </NavLink>
       </li>
